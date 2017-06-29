@@ -1,53 +1,65 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Favorites Organizer powered by Cloudant</title>
+	<title>Lyrics Search</title>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no"/>
 	<meta name="apple-mobile-web-app-capable" content="yes" />
-	<link rel="stylesheet" href="/style/style.css" />
+	<link rel="stylesheet" href="../public/style/style.css"/>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
+	<script src="https://code.jquery.com/jquery-3.2.1.min.js"
+		integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+		crossorigin="anonymous"></script>
 </head>
 <body>
+	<style>
+		/*table { border-bottom: 1px solid #000; }*/
+	</style>
 	<div class = "container">
-	<div class = "banner">
-		<img class="newappIcon" src="images/newapp-icon.png">
-		<p class = "appTitle">
-			Favorites Organizer powered by Cloudant
-		</p>
-	</div>
+		<section>
+		    <div class="form-group">
+		    	<form method="GET" action="/api/getLyrics" id="form1">
+			        <p>Search lyrics by artist name and song title</p>
+			        <input type="text" class="form-control" id="musixMatchArtist" name="artist" placeholder="Enter artist name" />
+			        <input type="text" class="form-control" id="musixMatchTrack" name="title" placeholder="Enter song title" />
+			      
+			      	<button class="form-control" id="musxMatchBtn" type="submit">Get Lyrics</button>
+		      </form>
+		    </div>
+			<div id="displayArea" class="form-group">
 
-
-	<section>
-		<table id='notes' class='records' border='0' cellspacing='0' cellpadding='0'><tbody></tbody></table>
-	</section>
-	<footer>
-		<div>
-			<!-- <button class='detailBtn' onclick="toggleServiceInfo()" title='Service information'>
-				<img src='images/detail.png' alt='detail'/>
-			-->
-			<button class="addBtn" onclick="addItem()" title="add record">
-				<img src="images/add.png" alt="add">
-			</button>
-			<br>
-			<a class = "infoImg" onclick="toggleAppInfo()">Help</a>
-		</div>
-		<div id='appinfo' class = 'appinfo' style='display: none;'>
-						This application helps you organize your favorite files.</br>
-						Supports all file types, like Audio, Video, Photos, Text etc.</br>
-						Click on Add icon to create a new category for your files. Provide a title and description for the category in the text fields.</br>
-						To add a file to a given category, Click on 'Browse' button to select a file, and 'Upload' button to upload the file.
-						To modify a title or description, Edit the text and press Enter.</br>
-						You can add multiple files (of any type) to a category.</br>
-						Click on <span class = 'deleteBtn' alt='delete'></span> icon to delete the category.
-		</div>
-		<div id="loadingImage"></div>
-		<br><br><br><br><br>
-		<div id="errorDiv" class='errorMsg'></div>
-	</footer>
-	<script type="text/javascript" src="/scripts/util.js"></script>
-	<script type="text/javascript" src="/scripts/index.js"></script>
-	<div id="myImage"><div id="innerImg"></div></div>
-	<br><br><br>
+			</div>
+		</section>
 	</div>
+	<script>
+		$(document).ready(function(){
+			$('#form1').submit(function(e){
+				e.preventDefault();
+				var url = '/api/getLyrics';
+				var data = $('#form1').serialize();
+
+				console.log("request: "+data);
+
+				$.ajax({
+					type:"get",
+					url :url ,
+					data: data,
+					success :function(data){
+						console.log(data);
+						var stringBuilder = '<textarea class="form-control" rows="25">'
+							+ data.message.body.lyrics.lyrics_body.replace('******* This Lyrics is NOT for Commercial use *******','')
+							+'</textarea>'
+							+'<table class="table" id="displayTable">'
+							+'<tr><td>Language</td><td>'
+							+ data.message.body.lyrics.lyrics_language_description
+							+ '</td></tr><tr><td>Updated</td><td>'
+							+ data.message.body.lyrics.updated_time
+							+ '</td></tr></table>'
+						$('#displayArea').append(stringBuilder);
+					}
+				});
+			});
+		});
+	</script>
 </body>
 </html>

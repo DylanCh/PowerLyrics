@@ -1,10 +1,10 @@
 /**
  * Module dependencies.
  */
-
+var routes;
 var express = require('express'),
     routes = require('./routes'),
-    user = require('./routes/user'),
+    // user = require('./routes/user'),
     http = require('http'),
     path = require('path'),
     fs = require('fs');
@@ -29,7 +29,7 @@ var multipart = require('connect-multiparty')
 var multipartMiddleware = multipart();
 
 // all environments
-app.set('port', process.env.PORT || 3000);
+app.set('port', process.env.PORT || 8080);
 app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
 app.engine('html', require('ejs').renderFile);
@@ -42,6 +42,7 @@ app.use(methodOverride());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/style', express.static(path.join(__dirname, '/views/style')));
 
+var http = require('http');
 // development only
 if ('development' == app.get('env')) {
     app.use(errorHandler());
@@ -59,38 +60,10 @@ function getDBCredentialsUrl(jsonData) {
     }
 }
 
-function initDBConnection() {
-    //When running on Bluemix, this variable will be set to a json object
-    //containing all the service credentials of all the bound services
-    if (process.env.VCAP_SERVICES) {
-        dbCredentials.url = getDBCredentialsUrl(process.env.VCAP_SERVICES);
-    } else { //When running locally, the VCAP_SERVICES will not be set
-
-        // When running this app locally you can get your Cloudant credentials
-        // from Bluemix (VCAP_SERVICES in "cf env" output or the Environment
-        // Variables section for an app in the Bluemix console dashboard).
-        // Once you have the credentials, paste them into a file called vcap-local.json.
-        // Alternately you could point to a local database here instead of a
-        // Bluemix service.
-        // url will be in this format: https://username:password@xxxxxxxxx-bluemix.cloudant.com
-        dbCredentials.url = getDBCredentialsUrl(fs.readFileSync("vcap-local.json", "utf-8"));
-    }
-
-    cloudant = require('cloudant')(dbCredentials.url);
-
-    // check if DB exists if not create
-    cloudant.db.create(dbCredentials.dbName, function(err, res) {
-        if (err) {
-            console.log('Could not create new db: ' + dbCredentials.dbName + ', it might already exist.');
-        }
-    });
-
-    db = cloudant.use(dbCredentials.dbName);
-}
-
-initDBConnection();
-
 app.get('/', routes.index);
+
+var apiGetLyrics = require('./routes/api/getLyrics');
+app.get('/api/getLyrics',apiGetLyrics);
 
 function createResponseData(id, name, value, attachments) {
 
@@ -337,97 +310,7 @@ app.put('/api/favorites', function(request, response) {
     });
 });
 
-app.get('/api/favorites', function(request, response) {
 
-    console.log("Get method invoked.. ")
-
-    db = cloudant.use(dbCredentials.dbName);
-    var docList = [];
-    var i = 0;
-    db.list(function(err, body) {
-        if (!err) {
-            var len = body.rows.length;
-            console.log('total # of docs -> ' + len);
-            if (len == 0) {
-                // push sample data
-                // save doc
-                var docName = 'sample_doc';
-                var docDesc = 'A sample Document';
-                db.insert({
-                    name: docName,
-                    value: 'A sample Document'
-                }, '', function(err, doc) {
-                    if (err) {
-                        console.log(err);
-                    } else {
-
-                        console.log('Document : ' + JSON.stringify(doc));
-                        var responseData = createResponseData(
-                            doc.id,
-                            docName,
-                            docDesc, []);
-                        docList.push(responseData);
-                        response.write(JSON.stringify(docList));
-                        console.log(JSON.stringify(docList));
-                        console.log('ending response...');
-                        response.end();
-                    }
-                });
-            } else {
-
-                body.rows.forEach(function(document) {
-
-                    db.get(document.id, {
-                        revs_info: true
-                    }, function(err, doc) {
-                        if (!err) {
-                            if (doc['_attachments']) {
-
-                                var attachments = [];
-                                for (var attribute in doc['_attachments']) {
-
-                                    if (doc['_attachments'][attribute] && doc['_attachments'][attribute]['content_type']) {
-                                        attachments.push({
-                                            "key": attribute,
-                                            "type": doc['_attachments'][attribute]['content_type']
-                                        });
-                                    }
-                                    console.log(attribute + ": " + JSON.stringify(doc['_attachments'][attribute]));
-                                }
-                                var responseData = createResponseData(
-                                    doc._id,
-                                    doc.name,
-                                    doc.value,
-                                    attachments);
-
-                            } else {
-                                var responseData = createResponseData(
-                                    doc._id,
-                                    doc.name,
-                                    doc.value, []);
-                            }
-
-                            docList.push(responseData);
-                            i++;
-                            if (i >= len) {
-                                response.write(JSON.stringify(docList));
-                                console.log('ending response...');
-                                response.end();
-                            }
-                        } else {
-                            console.log(err);
-                        }
-                    });
-
-                });
-            }
-
-        } else {
-            console.log(err);
-        }
-    });
-
-});
 
 
 http.createServer(app).listen(app.get('port'), '0.0.0.0', function() {
